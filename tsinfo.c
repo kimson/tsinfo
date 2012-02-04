@@ -16,7 +16,12 @@ int main(int argc, char* argv[])
 	unsigned char *buf, tmp;
 	FILE *fp;
 
-	if((fp = fopen("test-ts-30.m2t", "r")) == NULL){
+	if(argc != 2){
+		printf("Usage: ./tsinfo filename\n");
+		exit(0);
+	}
+
+	if((fp = fopen(argv[1], "r")) == NULL){
 		printf("open error!!\n");
 		return 1;
 	}
@@ -54,7 +59,6 @@ int main(int argc, char* argv[])
 					section_length = getSectionLength(buf+payload_start_index);
 					printf("section_length = %d\n", section_length);
 
-					while(
 					service_id = getServiceId(buf+payload_start_index+11);
 					printf("service_id = %d\n", service_id);
 
