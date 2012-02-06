@@ -69,34 +69,34 @@
 
 // 構造体宣言
 
-struct ConvStatus {
+typedef struct ConvStatus {
 	int		region[2];
 	int		bank[4];
 	BOOL	bSingleShift;
 	int		region_GL_backup;
 	BOOL	bXCS;
 	BOOL	bNormalSize;
-};
+}ConvStatus;
 
-struct KanaSequence {
+typedef struct KanaSequence {
 	int				count;
 	int				num[256];
 	int				mincost;
-};
+}KanaSequence;
 
-struct CharSequence {
+typedef struct CharSequence {
 	int				count;
 	int				fcode[256];
 	int				mincost;
-};
+}CharSequence;
 
-struct BankStatus {
+typedef struct BankStatus {
 	int		regionGL;
 	int		bankG0;
 	int		bankG1;
 	int		count;
 	int		cost;
-};
+}BankStatus;
 
 
 	// プロトタイプ宣言
