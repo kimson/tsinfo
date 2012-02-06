@@ -2,6 +2,7 @@
 #include <string.h>
 #include <locale.h>
 
+#include "tsinfo.h"
 #include "convtounicode.h"
 
 #define		IF_NSZ_TO_MSZ		if(bCharSize&&sta.bNormalSize){charbuf(dbuf,maxbufsize,dst++,0x89);sta.bNormalSize=FALSE;}
@@ -143,7 +144,8 @@ int conv_to_unicode(WCHAR *dbuf, const int maxbufsize, const unsigned char *sbuf
 					} else {
 						WCHAR	str[256];
 						int		len = tuikakigou2conv(jis, str);
-						for(int i = 0; i < len; i++) WCHARBUF(str[i]);
+						int i;
+						for(i = 0; i < len; i++) WCHARBUF(str[i]);
 					}
 					src += 2;
 					break;
@@ -1000,8 +1002,8 @@ int jis12conv(const int jiscode, const BOOL bConvDir)
 		bTableInitialized = TRUE;
 	}
 
-	int		winresult = jis12winconv(jiscode, bConvDir);
-	if(winresult != 0) return winresult;
+	//int		winresult = jis12winconv(jiscode, bConvDir);
+	//if(winresult != 0) return winresult;
 	
 	void	*result;
 	if(bConvDir) {
@@ -1015,39 +1017,6 @@ int jis12conv(const int jiscode, const BOOL bConvDir)
 	return *((int*)result + 1);
 }
 
-
-int jis12winconv(const int jiscode, const BOOL bConvDir)
-{
-//	JIS第一第二水準非漢字でwindows固有のマッピングを有するものについての jiscode <-> unicode変換
-//	対応する文字コードがなければ0を返す
-//
-//	bConvDir : TRUE		引数jiscode -> 戻り値unicode
-//	bConvDir : FALSE	引数unicode -> 戻り値jiscode
-
-	static int jis12wintable[] = 
-	{
-		#include "jis12wintable.h"
-	};
-
-	static int		jis12winrevtable[sizeof(jis12wintable) / sizeof(int)];
-	static BOOL		bTableInitialized = FALSE;
-
-	if(!bConvDir && !bTableInitialized) {
-		initrevtable(jis12wintable, jis12winrevtable, sizeof(jis12wintable));
-		bTableInitialized = TRUE;
-	}
-	
-	void	*result;
-	if(bConvDir) {
-		result = bsearch(&jiscode, jis12wintable, sizeof(jis12wintable) / sizeof(int) / 2, sizeof(int) * 2, comparefortable);
-	} else {
-		result = bsearch(&jiscode, jis12winrevtable, sizeof(jis12winrevtable) / sizeof(int) / 2, sizeof(int) * 2, comparefortable);
-	}
-
-	if(result == NULL) return 0;
-
-	return *((int*)result + 1);
-}
 
 
 int jis3conv(const int jiscode, const BOOL bConvDir)
@@ -1127,9 +1096,10 @@ int jis3combrevconv(int *code, const WCHAR* sbuf)
 
 	static WCHAR	jis3combrevtable[sizeof(jis3combtable) / sizeof(WCHAR)];
 	static BOOL		bTableInitialized = FALSE;
+	int i;
 
 	if(!bTableInitialized) {
-		for(int i = 0; i < sizeof(jis3combtable) / sizeof(WCHAR) / 3; i++) {
+		for(i = 0; i < sizeof(jis3combtable) / sizeof(WCHAR) / 3; i++) {
 			jis3combrevtable[i * 3]		= jis3combtable[i * 3 + 1];
 			jis3combrevtable[i * 3 + 1]	= jis3combtable[i * 3 + 2];
 			jis3combrevtable[i * 3 + 2]	= jis3combtable[i * 3];
@@ -1391,14 +1361,15 @@ int tuikakigou2conv(const int code, WCHAR *dbuf)
 
 	static WCHAR *kigou2str[] = 
 	{
-		#include "tuikakigou3table.h"
+		0x0000//#include "tuikakigou3table.h"
 	};
 
 	static void		*kigou2table[sizeof(kigou2code) / sizeof(int) * 2];
 	static BOOL		bTableInitialized = FALSE;
+	int i;
 
 	if(!bTableInitialized) {
-		for(int i = 0; i < sizeof(kigou2code) / sizeof(int); i++) {
+		for(i = 0; i < sizeof(kigou2code) / sizeof(int); i++) {
 			kigou2table[i * 2]			= (void*)(kigou2code + i);
 			kigou2table[i * 2 + 1]		= (void*)kigou2str[i];
 		}
@@ -1412,9 +1383,11 @@ int tuikakigou2conv(const int code, WCHAR *dbuf)
 
 	if(result != NULL) {
 		len = (int)wcslen(*((WCHAR**)result + 1));
-		wcscpy_s(dbuf, 255, *((WCHAR**)result + 1));
+		//wcscpy_s(dbuf, 255, *((WCHAR**)result + 1));
+		wcscpy(dbuf, 255, *((WCHAR**)result + 1));
 	} else {
-		len = swprintf_s(dbuf, 255, L"[#%.2d#%.2d]", (code / 256) - 32, (code % 256) - 32);
+		//len = swprintf_s(dbuf, 255, L"[#%.2d#%.2d]", (code / 256) - 32, (code % 256) - 32);
+		len = swprintf(dbuf, 255, L"[#%.2d#%.2d]", (code / 256) - 32, (code % 256) - 32);
 	}
 
 	return len;
@@ -1438,14 +1411,15 @@ int tuikakigou2revconv(int *code, const WCHAR *sbuf)
 
 	static WCHAR *kigou2str[] = 
 	{
-		#include "tuikakigou3table.h"
+		0x0000//#include "tuikakigou3table.h"
 	};
 
 	static void		*kigou2revtable[sizeof(kigou2code) / sizeof(int) * 2];
 	static BOOL		bTableInitialized = FALSE;
+	int i;
 
 	if(!bTableInitialized) {
-		for(int i = 0; i < sizeof(kigou2code) / sizeof(int); i++) {
+		for(i = 0; i < sizeof(kigou2code) / sizeof(int); i++) {
 			kigou2revtable[i * 2 + 1]	= (void*)(kigou2code + i);
 			kigou2revtable[i * 2]		= (void*)kigou2str[i];
 		}
@@ -1512,8 +1486,9 @@ int charsize1conv(const int jiscode, const BOOL bConvDir)
 void initrevtable(const int *tabletop, int *revtop, const int tablesize)	// 変換テーブル初期化用
 {
 	int		itemnum = tablesize / sizeof(int) / 2;
+	int i;
 		
-	for(int i = 0; i < itemnum; i++) {
+	for(i = 0; i < itemnum; i++) {
 		revtop[i * 2]		= tabletop[i * 2 + 1];
 		revtop[i * 2 + 1]	= tabletop[i * 2];
 	}
@@ -1562,8 +1537,9 @@ int compareforwchar2(const void *item1, const void *item2)					// 変換テー�
 {
 	WCHAR	*code1 = (WCHAR*)item1;
 	WCHAR	*code2 = (WCHAR*)item2;
+	int i;
 
-	for(int i = 0; i < 2; i++) {
+	for(i = 0; i < 2; i++) {
 		if(code1[i] != code2[i]) return (int)code1[i] - (int)code2[i];
 	}
 	
