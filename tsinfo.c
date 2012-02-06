@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "tsinfo.h"
+
 #define PID_SDT 0x00000011
 #define PID_EIT 0x00000012
 
@@ -11,10 +13,12 @@ void print_packet(unsigned char*);
 int main(int argc, char* argv[])
 {
 	int byte_count, adaptation_field_byte, payload_start_index, section_length, service_id, descriptor_length;
+	int loop_start_index, service_p_length, service_n_length, chname_length;
 	int i,j,k;
 	int pid;
 	unsigned char *buf, tmp;
-	FILE *fp;
+	WCHAR chname[256];
+	FILE *fp, *outfp;
 
 	if(argc != 2){
 		printf("Usage: ./tsinfo filename\n");
@@ -59,11 +63,37 @@ int main(int argc, char* argv[])
 					section_length = getSectionLength(buf+payload_start_index);
 					printf("section_length = %d\n", section_length);
 
-					service_id = getServiceId(buf+payload_start_index+11);
-					printf("service_id = %d\n", service_id);
+					loop_start_index = payload_start_index + 11;
+					i = 0;
+					while(i < section_length - 12){
+						service_id = getServiceId(buf+loop_start_index+i);
+						printf("service_id = %d\n", service_id);
 
-					descriptor_length = getDescriptorLength(buf+payload_start_index+11);
-					printf("descriptor length = %d\n", descriptor_length);
+						descriptor_length = getDescriptorLength(buf+loop_start_index+i);
+						switch(buf[loop_start_index+i+5])
+						{
+							case 0x48 :
+								service_p_length = (int)buf[loop_start_index+i+8];
+								service_n_length = (int)buf[loop_start_index+i+9+service_p_length];
+								printf("descriptor_length = %d\n", buf[loop_start_index+i+6]);
+								printf("service provider name length = %d\n", service_p_length);
+								printf("service name length = %d\n", buf[loop_start_index+i+9+service_p_length]);
+								chname_length = conv_to_unicode(chname, 512, buf+(loop_start_index+i+10+service_p_length), service_n_length, FALSE);
+								printf("chname_length = %d\n", chname_length);
+								outfp = fopen("aaa.txt", "a");
+								fwrite(chname, 2, chname_length, outfp);
+								fputc(0x0d, outfp);
+								fputc(0x00, outfp);
+								fputc(0x0a, outfp);
+								fputc(0x00, outfp);
+								fclose(outfp); 
+								break;
+							default :
+								break;
+						}
+
+						i += (5 + descriptor_length);
+					}
 					print_packet(buf);
 					
 					break;
