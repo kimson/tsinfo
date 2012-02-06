@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <iconv.h>
+#include <errno.h>
 
 #include "tsinfo.h"
 
@@ -9,6 +11,8 @@
 int getSectionLength(unsigned char*);
 int getPid(unsigned char*);
 void print_packet(unsigned char*);
+void printUtf8FromUnicode(WCHAR*,int);
+void wchar2char(WCHAR*,int,char*);
 
 int main(int argc, char* argv[])
 {
@@ -55,7 +59,7 @@ int main(int argc, char* argv[])
 			}
 
 			printf("adaptation field byte = %d\n", adaptation_field_byte);
-			if(adaptation_field_byte < 0) return -1;
+			if(adaptation_field_byte < 0) continue;
 			payload_start_index = 5 + adaptation_field_byte;
 			switch(buf[payload_start_index])
 			{
@@ -80,13 +84,14 @@ int main(int argc, char* argv[])
 								printf("service name length = %d\n", buf[loop_start_index+i+9+service_p_length]);
 								chname_length = conv_to_unicode(chname, 512, buf+(loop_start_index+i+10+service_p_length), service_n_length, FALSE);
 								printf("chname_length = %d\n", chname_length);
-								outfp = fopen("aaa.txt", "a");
+								printUtf8FromUnicode(chname, chname_length);
+								/*outfp = fopen("aaa.txt", "a");
 								fwrite(chname, 2, chname_length, outfp);
 								fputc(0x0d, outfp);
 								fputc(0x00, outfp);
 								fputc(0x0a, outfp);
 								fputc(0x00, outfp);
-								fclose(outfp); 
+								fclose(outfp);*/ 
 								break;
 							default :
 								break;
@@ -114,8 +119,6 @@ int main(int argc, char* argv[])
 		}
 		byte_count += 188;
 	}
-
-	printf("j = %d\n", j);
 
 	free(buf);
 	fclose(fp);
@@ -196,4 +199,49 @@ int getDescriptorLength(unsigned char* buf)
 	descriptor_length |= buf[4];
 
 	return descriptor_length;
+}
+
+void printUtf8FromUnicode(WCHAR* buf, int length)
+{
+	iconv_t cd;
+	char *sbuf, *dbuf, *tmp, *tmp2;
+	int ret, slength, dlength;
+
+	dbuf = (char*)malloc(sizeof(char)*length*4);
+	sbuf = (char*)malloc(sizeof(char)*length*2);
+	wchar2char(buf, length, sbuf);
+
+	tmp = dbuf;
+	tmp2 = sbuf;
+	slength = length*2;
+	dlength = length*4;
+
+	cd = iconv_open("UTF-8", "UTF-16LE");
+	if(cd == (iconv_t)-1){
+		perror("iconv_open error : ");
+		return;
+	}
+
+	ret = iconv(cd, &sbuf, &slength, &dbuf, &dlength); 
+	if(ret == -1){
+		perror("iconv error : ");
+		return;
+	}
+	*dbuf = '\0';
+	printf("chname = %s\n", tmp);
+
+	free(tmp);
+	free(tmp2);
+
+}
+
+void wchar2char(WCHAR *sbuf, int length, char *dbuf)
+{
+	int i;
+
+	for(i=0;i<length*2;i+=2){
+		dbuf[i+1] = (char)(sbuf[i/2]>>8);
+		dbuf[i] = (char)(sbuf[i/2] & 0x00ff);
+	}
+
 }
