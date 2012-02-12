@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <iconv.h>
 #include <errno.h>
 
@@ -13,6 +14,8 @@ int getPid(unsigned char*);
 void print_packet(unsigned char*);
 void printUtf8FromUnicode(WCHAR*,int);
 void wchar2char(WCHAR*,int,char*);
+BOOL parseOption(int,char**,OptionParams*);
+void initOptionParams(OptionParams*);
 
 int main(int argc, char* argv[])
 {
@@ -24,13 +27,16 @@ int main(int argc, char* argv[])
 	WCHAR chname[256];
 	FILE *fp, *outfp;
 
-	if(argc != 2){
-		printf("Usage: ./tsinfo filename\n");
+	OptionParams *options = (OptionParams*)malloc(sizeof(OptionParams));
+	initOptionParams(options);
+	if(parseOption(argc, argv, options) != TRUE){
+		printf("Usage: ./tsinfo -e <encoding> <input filename>\n");
+		printf("encoding : UTF-8(default), UTF-16LE\n");
 		exit(0);
 	}
 
-	if((fp = fopen(argv[1], "r")) == NULL){
-		printf("open error!!\n");
+	if((fp = fopen(options->inputFileName, "r")) == NULL){
+		perror("Input file : ");
 		return 1;
 	}
 
@@ -244,4 +250,52 @@ void wchar2char(WCHAR *sbuf, int length, char *dbuf)
 		dbuf[i] = (char)(sbuf[i/2] & 0x00ff);
 	}
 
+}
+
+BOOL parseOption(int argc, char* argv[], OptionParams *options)
+{
+	int i, j;
+
+	for(i=1;i<argc-1;i++){
+		if(argv[i][0] == '-'){
+			for(j=0;j<strlen(argv[i]);j++){
+				switch(argv[i][j])
+				{
+					case 'e' :
+						if(argv[i][j+1] != '\0'){
+							printf("-e ENCODE_NAME\n");
+							return FALSE;
+						}
+						i++;
+						if(strcmp(argv[i],"UTF-8")==0){
+							options->outputEncoding = ENCODE_UTF8;
+						}else if(strcmp(argv[i], "UTF-16LE")==0){
+							options->outputEncoding = ENCODE_UTF16LE;
+						}else{
+							printf("指定した文字コードに対応していません\n");
+							return FALSE;
+						}
+						break;
+					default :
+						return FALSE;
+						break;
+				}
+			}
+		}
+	}
+	options->inputFileName = (char*)malloc(sizeof(char)*strlen(argv[argc-1])+1);
+	if(options->inputFileName == NULL){
+		printf("Out of memory!!\n");
+		return FALSE;
+	}
+	strcpy(options->inputFileName, argv[argc-1]);
+
+	return TRUE;
+}
+
+void initOptionParams(OptionParams* options)
+{
+	options->outputType = 0;
+	options->outputEncoding = ENCODE_UTF8;
+	options->inputFileName = NULL;
 }
