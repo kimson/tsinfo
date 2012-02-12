@@ -1,7 +1,7 @@
-mpeg2 tsファイルのSDTから放送局に関する情報を取得します。
+mpeg2 tsファイルのSDTから放送局名を取得して標準出力に表示。
 
 Usage : ./tsinfo <filename>
 
-取得した文字列をUnicode(UTF-16LE)に変換する処理は、rplsTOOLに
-含まれるrplsinfoのものをほぼそのまま使わせてもらっています。
+取得した文字列をUnicode(UTF-16LE)に変換する処理は、rplsTOOL
+のものをほぼそのまま使わせてもらっています。
 rplsTOOL : http://nek.web.infoseek.co.jp/yaki2fan/bd/frame_bd.html
